@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build/
+data/
+.env
+*.log
+.DS_Store
+cookies.txt
+.vscode/
+.idea/
+*.pid

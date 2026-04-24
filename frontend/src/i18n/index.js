@@ -1,0 +1,197 @@
+const translations = {
+    en: {
+        app: {
+            title: 'MiniMax Proxy - Admin',
+            loading: 'Loading...'
+        },
+        nav: {
+            dashboard: 'Dashboard',
+            users: 'Users',
+            keys: 'API Keys',
+            logs: 'Logs',
+            logout: 'Logout'
+        },
+        dashboard: {
+            title: 'Dashboard',
+            totalRequests: 'Total Requests',
+            activeUsers: 'Active Users',
+            activeKeys: 'Active Keys',
+            failedRequests: 'Failed Requests',
+            requestTrend: 'Request Trend',
+            success: 'Successful',
+            topUsers: 'Top Users',
+            last24h: 'Last 24 Hours',
+            last7d: 'Last 7 Days',
+            last30d: 'Last 30 Days',
+            username: 'Username',
+            requests: 'Requests'
+        },
+        users: {
+            title: 'User Management',
+            addUser: 'Add User',
+            editUser: 'Edit User',
+            deleteUser: 'Delete User',
+            username: 'Username',
+            password: 'Password',
+            quotaLimit: 'Quota Limit',
+            isAdmin: 'Admin',
+            status: 'Status',
+            createdAt: 'Created At',
+            actions: 'Actions',
+            active: 'Active',
+            inactive: 'Inactive',
+            confirmDelete: 'Are you sure you want to delete this user?',
+            deleteWarning: 'This will also delete all API keys associated with this user.'
+        },
+        keys: {
+            title: 'API Key Management',
+            createKey: 'Create New Key',
+            copyKey: 'Copy Key',
+            keyCopied: 'Key copied to clipboard',
+            keyPrefix: 'Key Prefix',
+            userId: 'User',
+            quotaUsed: 'Quota Used',
+            quotaLimit: 'Quota Limit',
+            expiresAt: 'Expires At',
+            isActive: 'Active',
+            status: 'Status',
+            actions: 'Actions',
+            toggle: 'Toggle',
+            delete: 'Delete',
+            neverExpires: 'Never',
+            confirmDelete: 'Are you sure you want to delete this API key?',
+            createSuccess: 'API key created successfully. Please copy it now as it will not be shown again.'
+        },
+        logs: {
+            title: 'Request Logs',
+            user: 'User',
+            apiKey: 'API Key',
+            model: 'Model',
+            status: 'Status',
+            ip: 'IP Address',
+            time: 'Time',
+            noLogs: 'No logs found',
+            success: 'Success',
+            error: 'Error'
+        },
+        login: {
+            title: 'MiniMax Proxy Login',
+            username: 'Username',
+            password: 'Password',
+            login: 'Login',
+            loginError: 'Invalid username or password'
+        },
+        common: {
+            save: 'Save',
+            cancel: 'Cancel',
+            delete: 'Delete',
+            edit: 'Edit',
+            create: 'Create',
+            close: 'Close',
+            confirm: 'Confirm',
+            yes: 'Yes',
+            no: 'No',
+            all: 'All',
+            search: 'Search',
+            noData: 'No data'
+        }
+    },
+    zh: {
+        app: {
+            title: 'MiniMax 代理 - 管理后台',
+            loading: '加载中...'
+        },
+        nav: {
+            dashboard: '仪表盘',
+            users: '用户管理',
+            keys: 'API 密钥',
+            logs: '请求日志',
+            logout: '退出登录'
+        },
+        dashboard: {
+            title: '仪表盘',
+            totalRequests: '总请求数',
+            activeUsers: '活跃用户',
+            activeKeys: '活跃密钥',
+            failedRequests: '失败请求',
+            requestTrend: '请求趋势',
+            topUsers: '用户排行',
+            last24h: '最近 24 小时',
+            last7d: '最近 7 天',
+            last30d: '最近 30 天',
+            username: '用户名',
+            requests: '请求数'
+        },
+        users: {
+            title: '用户管理',
+            addUser: '添加用户',
+            editUser: '编辑用户',
+            deleteUser: '删除用户',
+            username: '用户名',
+            password: '密码',
+            quotaLimit: '配额限制',
+            isAdmin: '管理员',
+            status: '状态',
+            createdAt: '创建时间',
+            actions: '操作',
+            active: '启用',
+            inactive: '禁用',
+            confirmDelete: '确定要删除此用户吗？',
+            deleteWarning: '这将同时删除该用户的所有 API 密钥。'
+        },
+        keys: {
+            title: 'API 密钥管理',
+            createKey: '创建新密钥',
+            copyKey: '复制密钥',
+            keyCopied: '密钥已复制到剪贴板',
+            keyPrefix: '密钥前缀',
+            userId: '用户',
+            quotaUsed: '已用配额',
+            quotaLimit: '配额限制',
+            expiresAt: '过期时间',
+            isActive: '启用',
+            status: '状态',
+            actions: '操作',
+            toggle: '切换',
+            delete: '删除',
+            neverExpires: '永不过期',
+            confirmDelete: '确定要删除此 API 密钥吗？',
+            createSuccess: 'API 密钥已创建。请立即复制，因为之后不会再显示。'
+        },
+        logs: {
+            title: '请求日志',
+            user: '用户',
+            apiKey: 'API 密钥',
+            model: '模型',
+            status: '状态',
+            ip: 'IP 地址',
+            time: '时间',
+            noLogs: '暂无日志',
+            success: '成功',
+            error: '失败'
+        },
+        login: {
+            title: 'MiniMax 代理登录',
+            username: '用户名',
+            password: '密码',
+            login: '登录',
+            loginError: '用户名或密码错误'
+        },
+        common: {
+            save: '保存',
+            cancel: '取消',
+            delete: '删除',
+            edit: '编辑',
+            create: '创建',
+            close: '关闭',
+            confirm: '确认',
+            yes: '是',
+            no: '否',
+            all: '全部',
+            search: '搜索',
+            noData: '暂无数据'
+        }
+    }
+};
+
+export default translations;
