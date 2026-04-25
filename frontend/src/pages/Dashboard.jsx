@@ -100,21 +100,20 @@ function Dashboard() {
         labels,
         datasets: [
             {
-                label: t('dashboard.totalRequests'),
-                data: filledSlots.map(s => s.requests),
-                backgroundColor: 'rgba(59, 130, 246, 0.5)',
-                borderColor: 'rgb(59, 130, 246)',
+                label: t('dashboard.success'),
+                data: filledSlots.map(s => s.successful),
+                backgroundColor: 'rgba(34, 197, 94, 0.7)',
+                borderColor: 'rgb(34, 197, 94)',
                 borderWidth: 1
             },
             {
-                label: t('dashboard.success'),
-                data: filledSlots.map(s => s.successful),
-                backgroundColor: 'rgba(34, 197, 94, 0.5)',
-                borderColor: 'rgb(34, 197, 94)',
+                label: t('dashboard.failedRequests'),
+                data: filledSlots.map(s => s.requests - s.successful),
+                backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                borderColor: 'rgb(239, 68, 68)',
                 borderWidth: 1
             }
-        ],
-        _slots: filledSlots
+        ]
     };
 
     const chartOptions = {
@@ -131,17 +130,27 @@ function Dashboard() {
                     afterBody: (tooltipItems) => {
                         const idx = tooltipItems[0].dataIndex;
                         const slot = filledSlots[idx];
-                        if (!slot || !slot.users || slot.users.length === 0) {
-                            return [t('dashboard.noUsersInSlot')];
-                        }
-                        const lines = [`${t('dashboard.users')}:`];
-                        const maxShow = 8;
-                        const shown = slot.users.slice(0, maxShow);
-                        shown.forEach(u => {
-                            lines.push(`  ${u.username}: ${u.requests}`);
-                        });
-                        if (slot.users.length > maxShow) {
-                            lines.push(`  ... ${t('dashboard.andMoreUsers').replace('{n}', slot.users.length - maxShow)}`);
+                        const total = slot.requests;
+                        const success = slot.successful;
+                        const failed = total - success;
+                        const lines = [
+                            `${t('dashboard.totalRequests')}: ${total}`,
+                            `${t('dashboard.success')}: ${success}`,
+                            `${t('dashboard.failedRequests')}: ${failed}`,
+                            ''
+                        ];
+                        if (!slot.users || slot.users.length === 0) {
+                            lines.push(t('dashboard.noUsersInSlot'));
+                        } else {
+                            lines.push(`${t('dashboard.users')}:`);
+                            const maxShow = 8;
+                            const shown = slot.users.slice(0, maxShow);
+                            shown.forEach(u => {
+                                lines.push(`  ${u.username}: ${u.requests}`);
+                            });
+                            if (slot.users.length > maxShow) {
+                                lines.push(`  ... ${t('dashboard.andMoreUsers').replace('{n}', slot.users.length - maxShow)}`);
+                            }
                         }
                         return lines;
                     }
@@ -149,7 +158,8 @@ function Dashboard() {
             }
         },
         scales: {
-            y: { beginAtZero: true }
+            y: { beginAtZero: true, stacked: true },
+            x: { stacked: true }
         }
     };
 
