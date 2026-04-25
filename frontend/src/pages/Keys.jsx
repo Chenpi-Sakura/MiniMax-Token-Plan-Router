@@ -1,18 +1,29 @@
 import { useState, useEffect } from 'react';
-import { keys, users as usersApi } from '../api';
+import { keys, users as usersApi, auth } from '../api';
 import { Plus, Trash2, Copy, ToggleLeft, ToggleRight, AlertCircle } from 'lucide-react';
 import { useI18n } from '../i18n/I18nContext';
+
+function formatDate(dateStr) {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${y}/${m}/${day}`;
+}
 
 function Keys() {
     const [keyList, setKeyList] = useState([]);
     const [userList, setUserList] = useState([]);
+    const [isAdmin, setIsAdmin] = useState(false);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [showCreatedModal, setShowCreatedModal] = useState(false);
     const [createdKey, setCreatedKey] = useState(null);
     const [formData, setFormData] = useState({
         name: '',
-        userId: null,
+        userId: '',
+        quotaLimit: '',
         expiresAt: ''
     });
     const { t } = useI18n();
@@ -24,12 +35,20 @@ function Keys() {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [keysRes, usersRes] = await Promise.all([
-                keys.list(),
-                usersApi.list()
+            const meRes = await auth.me();
+            setIsAdmin(meRes.data.isAdmin);
+            const [keysRes] = await Promise.all([
+                keys.list()
             ]);
             setKeyList(keysRes.data);
-            setUserList(usersRes.data);
+            if (meRes.data.isAdmin) {
+                try {
+                    const usersRes = await usersApi.list();
+                    setUserList(usersRes.data);
+                } catch (e) {
+                    console.error('Failed to load users:', e);
+                }
+            }
         } catch (error) {
             console.error('Failed to load data:', error);
         } finally {
@@ -40,11 +59,19 @@ function Keys() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const { data } = await keys.create(formData);
+            const payload = {
+                name: formData.name || null,
+                expiresAt: formData.expiresAt || null,
+                quotaLimit: formData.quotaLimit ? parseInt(formData.quotaLimit) : null
+            };
+            if (isAdmin && formData.userId) {
+                payload.userId = parseInt(formData.userId);
+            }
+            const { data } = await keys.create(payload);
             setCreatedKey(data);
             setShowModal(false);
             setShowCreatedModal(true);
-            setFormData({ name: '', userId: null, expiresAt: '' });
+            setFormData({ name: '', userId: '', quotaLimit: '', expiresAt: '' });
             loadData();
         } catch (error) {
             alert(error.response?.data?.error || 'Create failed');
@@ -100,6 +127,7 @@ function Keys() {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('keys.keyPrefix')}</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('keys.userId')}</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('keys.quotaUsed')}</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('keys.limit')}</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('keys.expiresAt')}</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('keys.status')}</th>
                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('keys.actions')}</th>
@@ -122,7 +150,12 @@ function Keys() {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="text-sm text-gray-500">
-                                        {key.expiresAt ? new Date(key.expiresAt).toLocaleDateString() : t('keys.neverExpires')}
+                                        {key.quotaLimit ? key.quotaLimit.toLocaleString() : t('keys.unlimited')}
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="text-sm text-gray-500">
+                                        {formatDate(key.expiresAt) || t('keys.neverExpires')}
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
@@ -154,7 +187,7 @@ function Keys() {
                         ))}
                         {keyList.length === 0 && (
                             <tr>
-                                <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                                <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
                                     {t('common.noData')}
                                 </td>
                             </tr>
@@ -179,18 +212,35 @@ function Keys() {
                                         className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
                                     />
                                 </div>
+                                {isAdmin && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">{t('keys.userId')}</label>
+                                        <select
+                                            value={formData.userId}
+                                            onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
+                                            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                                        >
+                                            <option value="">{t('keys.selectUser')}</option>
+                                            {userList.length === 0 ? (
+                                                <option disabled value="">{t('keys.noUsers')}</option>
+                                            ) : (
+                                                userList.map((user) => (
+                                                    <option key={user.id} value={String(user.id)}>{user.username}</option>
+                                                ))
+                                            )}
+                                        </select>
+                                    </div>
+                                )}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">{t('keys.userId')}</label>
-                                    <select
-                                        value={formData.userId || ''}
-                                        onChange={(e) => setFormData({ ...formData, userId: e.target.value ? parseInt(e.target.value) : null })}
+                                    <label className="block text-sm font-medium text-gray-700">{t('keys.quotaLimit')} ({t('keys.unlimited')})</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={formData.quotaLimit}
+                                        onChange={(e) => setFormData({ ...formData, quotaLimit: e.target.value })}
+                                        placeholder={t('keys.noLimit')}
                                         className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                                    >
-                                        <option value="">Select user</option>
-                                        {userList.map((user) => (
-                                            <option key={user.id} value={user.id}>{user.username}</option>
-                                        ))}
-                                    </select>
+                                    />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">{t('keys.expiresAt')}</label>

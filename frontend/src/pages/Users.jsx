@@ -11,7 +11,6 @@ function Users() {
     const [formData, setFormData] = useState({
         username: '',
         password: '',
-        quotaLimit: 1000,
         isAdmin: false
     });
     const { t } = useI18n();
@@ -35,14 +34,22 @@ function Users() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            const payload = {
+                username: formData.username,
+                password: formData.password,
+                isAdmin: formData.isAdmin
+            };
+            if (!payload.password && editingUser) {
+                delete payload.password;
+            }
             if (editingUser) {
-                await users.update(editingUser.id, formData);
+                await users.update(editingUser.id, payload);
             } else {
-                await users.create(formData);
+                await users.create(payload);
             }
             setShowModal(false);
             setEditingUser(null);
-            setFormData({ username: '', password: '', quotaLimit: 1000, isAdmin: false });
+            setFormData({ username: '', password: '', isAdmin: false });
             loadUsers();
         } catch (error) {
             alert(error.response?.data?.error || 'Operation failed');
@@ -54,7 +61,6 @@ function Users() {
         setFormData({
             username: user.username,
             password: '',
-            quotaLimit: user.quotaLimit,
             isAdmin: user.isAdmin
         });
         setShowModal(true);
@@ -72,7 +78,7 @@ function Users() {
 
     const openCreateModal = () => {
         setEditingUser(null);
-        setFormData({ username: '', password: '', quotaLimit: 1000, isAdmin: false });
+        setFormData({ username: '', password: '', isAdmin: false });
         setShowModal(true);
     };
 
@@ -95,7 +101,6 @@ function Users() {
                         <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('users.username')}</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('users.isAdmin')}</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('users.quotaLimit')}</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">API Keys</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Usage</th>
                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t('users.actions')}</th>
@@ -116,9 +121,6 @@ function Users() {
                                     ) : (
                                         <span className="text-sm text-gray-500">User</span>
                                     )}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {user.quotaLimit.toLocaleString()}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {user.keyCount}
@@ -174,16 +176,6 @@ function Users() {
                                         required={!editingUser}
                                         value={formData.password}
                                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">{t('users.quotaLimit')}</label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        value={formData.quotaLimit}
-                                        onChange={(e) => setFormData({ ...formData, quotaLimit: parseInt(e.target.value) })}
                                         className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
                                     />
                                 </div>

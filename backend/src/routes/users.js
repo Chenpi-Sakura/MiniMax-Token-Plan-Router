@@ -16,7 +16,6 @@ router.get('/users', (req, res) => {
                 u.id,
                 u.username,
                 u.is_admin,
-                u.quota_limit,
                 u.created_at,
                 (SELECT COUNT(*) FROM api_keys WHERE user_id = u.id) as key_count,
                 (SELECT COALESCE(SUM(quota_used), 0) FROM api_keys WHERE user_id = u.id) as total_usage
@@ -28,7 +27,6 @@ router.get('/users', (req, res) => {
             id: u.id,
             username: u.username,
             isAdmin: !!u.is_admin,
-            quotaLimit: u.quota_limit,
             keyCount: u.key_count,
             totalUsage: u.total_usage,
             createdAt: u.created_at
@@ -41,7 +39,7 @@ router.get('/users', (req, res) => {
 
 router.post('/users', async (req, res) => {
     try {
-        const { username, password, quotaLimit, isAdmin: isAdminFlag } = req.body;
+        const { username, password, isAdmin: isAdminFlag } = req.body;
 
         if (!username || !password) {
             return res.status(400).json({ error: 'Username and password are required' });
@@ -54,16 +52,16 @@ router.post('/users', async (req, res) => {
         }
 
         const passwordHash = await bcrypt.hash(password, 10);
+
         const result = db.prepare(`
-            INSERT INTO users (username, password_hash, is_admin, quota_limit)
-            VALUES (?, ?, ?, ?)
-        `).run(username, passwordHash, isAdminFlag ? 1 : 0, quotaLimit || 1000);
+            INSERT INTO users (username, password_hash, is_admin)
+            VALUES (?, ?, ?)
+        `).run(username, passwordHash, isAdminFlag ? 1 : 0);
 
         res.status(201).json({
             id: result.lastInsertRowid,
             username,
-            isAdmin: !!isAdminFlag,
-            quotaLimit: quotaLimit || 1000
+            isAdmin: !!isAdminFlag
         });
     } catch (error) {
         console.error('Create user error:', error);
@@ -74,7 +72,7 @@ router.post('/users', async (req, res) => {
 router.put('/users/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { password, quotaLimit, isAdmin: isAdminFlag } = req.body;
+        const { password, isAdmin: isAdminFlag } = req.body;
 
         const db = getDb();
         const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
@@ -85,10 +83,6 @@ router.put('/users/:id', async (req, res) => {
         if (password) {
             const passwordHash = await bcrypt.hash(password, 10);
             db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, id);
-        }
-
-        if (quotaLimit !== undefined) {
-            db.prepare('UPDATE users SET quota_limit = ? WHERE id = ?').run(quotaLimit, id);
         }
 
         if (isAdminFlag !== undefined) {

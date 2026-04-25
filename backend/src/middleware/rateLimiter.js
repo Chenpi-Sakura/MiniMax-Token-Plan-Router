@@ -49,21 +49,21 @@ function quotaChecker(req, res, next) {
     const keyHash = require('../utils/crypto').hashApiKey(apiKey);
 
     const keyRecord = db.prepare(`
-        SELECT ak.*, u.quota_limit as user_quota_limit, u.is_admin
-        FROM api_keys ak
-        JOIN users u ON ak.user_id = u.id
-        WHERE ak.key_hash = ? AND ak.is_active = 1
+        SELECT * FROM api_keys WHERE key_hash = ? AND is_active = 1
     `).get(keyHash);
 
     if (!keyRecord) {
         return res.status(401).json({ error: 'Invalid API key' });
     }
 
-    if (keyRecord.expires_at && new Date(keyRecord.expires_at) < new Date()) {
-        return res.status(401).json({ error: 'API key expired' });
+    if (keyRecord.expires_at) {
+        const expiresAt = new Date(keyRecord.expires_at);
+        if (expiresAt < new Date()) {
+            return res.status(401).json({ error: 'API key expired' });
+        }
     }
 
-    if (!keyRecord.is_admin && keyRecord.quota_used >= keyRecord.user_quota_limit) {
+    if (keyRecord.quota_limit !== null && keyRecord.quota_used >= keyRecord.quota_limit) {
         return res.status(403).json({ error: 'Quota exceeded' });
     }
 

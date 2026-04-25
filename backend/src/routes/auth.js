@@ -34,8 +34,7 @@ router.post('/login', async (req, res) => {
             user: {
                 id: user.id,
                 username: user.username,
-                isAdmin: !!user.is_admin,
-                quotaLimit: user.quota_limit
+                isAdmin: !!user.is_admin
             }
         });
     } catch (error) {
@@ -55,7 +54,7 @@ router.post('/logout', (req, res) => {
 
 router.get('/me', isAuthenticated, (req, res) => {
     const db = getDb();
-    const user = db.prepare('SELECT id, username, is_admin, quota_limit, created_at FROM users WHERE id = ?')
+    const user = db.prepare('SELECT id, username, is_admin, created_at FROM users WHERE id = ?')
         .get(req.session.userId);
 
     if (!user) {
@@ -66,7 +65,6 @@ router.get('/me', isAuthenticated, (req, res) => {
         id: user.id,
         username: user.username,
         isAdmin: !!user.is_admin,
-        quotaLimit: user.quota_limit,
         createdAt: user.created_at
     });
 });

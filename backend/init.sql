@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS users (
     username TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     is_admin INTEGER DEFAULT 0,
-    quota_limit INTEGER DEFAULT 1000,
+    limit_type TEXT DEFAULT 'unlimited',
+    limit_value INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -18,6 +19,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
     key_prefix TEXT NOT NULL,
     name TEXT,
     quota_used INTEGER DEFAULT 0,
+    quota_limit INTEGER,
     expires_at DATETIME,
     is_active INTEGER DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.use(isAuthenticated);
 
-router.get('/keys', (req, res) => {
+router.get('/', (req, res) => {
     try {
         const db = getDb();
         let keys;
@@ -35,6 +35,7 @@ router.get('/keys', (req, res) => {
             maskedKey: maskApiKey(k.key_prefix),
             name: k.name,
             quotaUsed: k.quota_used,
+            quotaLimit: k.quota_limit,
             expiresAt: k.expires_at,
             isActive: !!k.is_active,
             createdAt: k.created_at
@@ -45,7 +46,7 @@ router.get('/keys', (req, res) => {
     }
 });
 
-router.post('/keys', (req, res) => {
+router.post('/', (req, res) => {
     try {
         const { name, userId, expiresAt, quotaLimit } = req.body;
 
@@ -64,15 +65,16 @@ router.post('/keys', (req, res) => {
         const keyPrefix = apiKey.substring(0, 12);
 
         const result = db.prepare(`
-            INSERT INTO api_keys (user_id, key_hash, key_prefix, name, expires_at)
-            VALUES (?, ?, ?, ?, ?)
-        `).run(targetUserId, keyHash, keyPrefix, name || null, expiresAt || null);
+            INSERT INTO api_keys (user_id, key_hash, key_prefix, name, quota_limit, expires_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `).run(targetUserId, keyHash, keyPrefix, name || null, quotaLimit || null, expiresAt || null);
 
         res.status(201).json({
             id: result.lastInsertRowid,
             apiKey: apiKey,
             keyPrefix: keyPrefix,
             name: name || null,
+            quotaLimit: quotaLimit || null,
             expiresAt: expiresAt || null,
             message: 'Store this API key securely. It will not be shown again.'
         });
@@ -82,7 +84,7 @@ router.post('/keys', (req, res) => {
     }
 });
 
-router.delete('/keys/:id', (req, res) => {
+router.delete('/:id', (req, res) => {
     try {
         const { id } = req.params;
 
@@ -106,7 +108,7 @@ router.delete('/keys/:id', (req, res) => {
     }
 });
 
-router.put('/keys/:id/toggle', (req, res) => {
+router.put('/:id/toggle', (req, res) => {
     try {
         const { id } = req.params;
 

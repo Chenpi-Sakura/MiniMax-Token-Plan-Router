@@ -81,6 +81,15 @@ Content-Type: application/json
 
 转发到 MiniMax 非标准端点：`/v1/text/chatcompletion_v2`
 
+## 用户与密钥管理流程
+
+1. **创建用户**：管理员在用户管理页面创建用户（用户名/密码/是否管理员），不涉及用量限制
+2. **创建 API Key**：管理员在密钥管理页面为指定用户创建密钥，可选设置：
+   - 调用上限（`quota_limit`）：该密钥最多允许的调用次数
+   - 过期时间（`expires_at`）：该密钥的有效截止日期
+   - 两者可独立设置，也可同时设置
+3. **Key 级别限制**：每个 API Key 独立管理自己的 `quota_used`（已用次数）、`quota_limit`（上限）和 `expires_at`（过期时间）
+
 ## 默认账号
 
 - 用户名：`admin`
@@ -92,9 +101,18 @@ Content-Type: application/json
 - 首次启动时通过 `init.sql` 自动创建
 - 会话存储在 `data/sessions.db`
 
+### api_keys 表关键字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `quota_used` | INTEGER | 已调用次数 |
+| `quota_limit` | INTEGER | 调用上限（NULL 表示不限制） |
+| `expires_at` | DATETIME | 过期时间（NULL 表示永不过期） |
+
 ## 重要注意事项
 
 1. **密钥显示**：新密钥创建时只显示一次，无法找回
 2. **MiniMax API 格式**：非标准 OpenAI 格式，代理进行转换
 3. **限流**：内存存储，重启重置，非分布式
 4. **额度追踪**：按请求次数计，非 token 数
+5. **密钥级别限制**：调用上限（`quota_limit`）和过期时间（`expires_at`）均在密钥级别管理，用户创建时无需设置限制

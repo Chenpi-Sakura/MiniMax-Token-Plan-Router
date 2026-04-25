@@ -81,10 +81,6 @@ router.get('/', (req, res) => {
                 FROM api_keys
                 WHERE user_id = ?
             `).get(req.session.userId).used;
-
-            const user = db.prepare('SELECT quota_limit FROM users WHERE id = ?')
-                .get(req.session.userId);
-            stats.quotaLimit = user ? user.quota_limit : 0;
         }
 
         res.json(stats);
