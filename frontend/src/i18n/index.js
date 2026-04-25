@@ -24,7 +24,10 @@ const translations = {
             last7d: 'Last 7 Days',
             last30d: 'Last 30 Days',
             username: 'Username',
-            requests: 'Requests'
+            requests: 'Requests',
+            users: 'Users',
+            noUsersInSlot: 'No user data',
+            andMoreUsers: 'and {n} more users'
         },
         users: {
             title: 'User Management',
@@ -131,7 +134,10 @@ const translations = {
             last7d: '最近 7 天',
             last30d: '最近 30 天',
             username: '用户名',
-            requests: '请求数'
+            requests: '请求数',
+            users: '用户',
+            noUsersInSlot: '无用户数据',
+            andMoreUsers: '及另外 {n} 位用户'
         },
         users: {
             title: '用户管理',

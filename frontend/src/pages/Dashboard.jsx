@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { stats } from '../api';
 import { Bar } from 'react-chartjs-2';
 import {
@@ -20,10 +20,25 @@ function Dashboard() {
     const [period, setPeriod] = useState('7d');
     const [loading, setLoading] = useState(true);
     const { t } = useI18n();
+    const chartContainerRef = useRef(null);
+    const [chartHeight, setChartHeight] = useState(320);
 
     useEffect(() => {
         loadStats();
     }, [period]);
+
+    useEffect(() => {
+        const observer = new ResizeObserver(() => {
+            if (chartContainerRef.current) {
+                const h = chartContainerRef.current.clientHeight;
+                if (h > 0) setChartHeight(h);
+            }
+        });
+        if (chartContainerRef.current) {
+            observer.observe(chartContainerRef.current);
+        }
+        return () => observer.disconnect();
+    }, []);
 
     const loadStats = async () => {
         setLoading(true);
@@ -41,33 +56,123 @@ function Dashboard() {
         return <div className="text-gray-500">{t('app.loading')}</div>;
     }
 
+    const isHourly = period === '24h';
+    const rawSlots = statsData.dailyStats || [];
+
+    const fillZeroSlots = () => {
+        const now = new Date();
+        const slots = [];
+
+        if (isHourly) {
+            for (let i = 23; i >= 0; i--) {
+                const d = new Date(now.getTime() - i * 3600000);
+                const slotKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:00`;
+                const found = rawSlots.find(s => s.slot === slotKey);
+                slots.push(found || { slot: slotKey, requests: 0, successful: 0, users: [] });
+            }
+        } else {
+            const days = period === '7d' ? 7 : 30;
+            for (let i = days - 1; i >= 0; i--) {
+                const d = new Date(now.getTime() - i * 86400000);
+                const slotKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                const found = rawSlots.find(s => s.slot === slotKey);
+                slots.push(found || { slot: slotKey, requests: 0, successful: 0, users: [] });
+            }
+        }
+        return slots;
+    };
+
+    const filledSlots = fillZeroSlots();
+
+    const formatLabel = (slot) => {
+        if (isHourly) {
+            const [date, hour] = slot.split(' ');
+            const [year, month, day] = date.split('-');
+            return `${month}-${day} ${hour}`;
+        }
+        const [year, month, day] = slot.split('-');
+        return `${month}-${day}`;
+    };
+
+    const labels = filledSlots.map(s => formatLabel(s.slot));
+
     const chartData = {
-        labels: (statsData.dailyStats || []).map(d => d.date).reverse(),
+        labels,
         datasets: [
             {
                 label: t('dashboard.totalRequests'),
-                data: (statsData.dailyStats || []).map(d => d.requests).reverse(),
+                data: filledSlots.map(s => s.requests),
                 backgroundColor: 'rgba(59, 130, 246, 0.5)',
                 borderColor: 'rgb(59, 130, 246)',
                 borderWidth: 1
             },
             {
                 label: t('dashboard.success'),
-                data: (statsData.dailyStats || []).map(d => d.successful).reverse(),
+                data: filledSlots.map(s => s.successful),
                 backgroundColor: 'rgba(34, 197, 94, 0.5)',
                 borderColor: 'rgb(34, 197, 94)',
                 borderWidth: 1
             }
-        ]
+        ],
+        _slots: filledSlots
     };
 
     const chartOptions = {
         responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+            mode: 'index',
+            intersect: false
+        },
         plugins: {
-            legend: { position: 'top' }
+            legend: { position: 'top' },
+            tooltip: {
+                callbacks: {
+                    afterBody: (tooltipItems) => {
+                        const idx = tooltipItems[0].dataIndex;
+                        const slot = filledSlots[idx];
+                        if (!slot || !slot.users || slot.users.length === 0) {
+                            return [t('dashboard.noUsersInSlot')];
+                        }
+                        const lines = [`${t('dashboard.users')}:`];
+                        const maxShow = 8;
+                        const shown = slot.users.slice(0, maxShow);
+                        shown.forEach(u => {
+                            lines.push(`  ${u.username}: ${u.requests}`);
+                        });
+                        if (slot.users.length > maxShow) {
+                            lines.push(`  ... ${t('dashboard.andMoreUsers').replace('{n}', slot.users.length - maxShow)}`);
+                        }
+                        return lines;
+                    }
+                }
+            }
         },
         scales: {
             y: { beginAtZero: true }
+        }
+    };
+
+    const topUsersData = {
+        labels: (statsData.topUsers || []).map(u => u.username),
+        datasets: [{
+            label: t('dashboard.requests'),
+            data: (statsData.topUsers || []).map(u => u.requests),
+            backgroundColor: 'rgba(59, 130, 246, 0.6)',
+            borderColor: 'rgb(59, 130, 246)',
+            borderWidth: 1
+        }]
+    };
+
+    const topUsersOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            x: { beginAtZero: true }
         }
     };
 
@@ -131,7 +236,7 @@ function Dashboard() {
 
             <div className="bg-white rounded-lg shadow p-6 mb-6">
                 <h2 className="text-lg font-semibold mb-4">{t('dashboard.requestTrend')}</h2>
-                <div className="h-64">
+                <div ref={chartContainerRef} style={{ height: chartHeight, position: 'relative' }}>
                     <Bar data={chartData} options={chartOptions} />
                 </div>
             </div>
@@ -139,23 +244,8 @@ function Dashboard() {
             {statsData.topUsers && statsData.topUsers.length > 0 && (
                 <div className="bg-white rounded-lg shadow p-6">
                     <h2 className="text-lg font-semibold mb-4">{t('dashboard.topUsers')}</h2>
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full">
-                            <thead>
-                                <tr className="border-b">
-                                    <th className="text-left py-2">{t('dashboard.username')}</th>
-                                    <th className="text-right py-2">{t('dashboard.requests')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {statsData.topUsers.map((user, idx) => (
-                                    <tr key={idx} className="border-b last:border-0">
-                                        <td className="py-2">{user.username}</td>
-                                        <td className="py-2 text-right">{user.requests.toLocaleString()}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                    <div style={{ height: Math.max(200, statsData.topUsers.length * 40), position: 'relative' }}>
+                        <Bar data={topUsersData} options={topUsersOptions} />
                     </div>
                 </div>
             )}

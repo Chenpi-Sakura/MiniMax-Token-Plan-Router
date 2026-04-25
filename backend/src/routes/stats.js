@@ -27,7 +27,9 @@ router.get('/', (req, res) => {
         }
 
         let stats;
-        if (req.session.isAdmin) {
+        const isAdmin = req.session.isAdmin;
+
+        if (isAdmin) {
             stats = db.prepare(`
                 SELECT
                     COUNT(*) as total_requests,
@@ -39,17 +41,48 @@ router.get('/', (req, res) => {
                 ${dateFilter}
             `).get();
 
-            const dailyStats = db.prepare(`
+            let dailyStats;
+            let groupBy;
+            let slotExpr;
+
+            if (period === '24h') {
+                slotExpr = "strftime('%Y-%m-%d %H:00', rl.created_at)";
+                groupBy = "strftime('%Y-%m-%d %H:00', rl.created_at)";
+            } else {
+                slotExpr = "DATE(rl.created_at)";
+                groupBy = "DATE(rl.created_at)";
+            }
+
+            dailyStats = db.prepare(`
                 SELECT
-                    DATE(created_at) as date,
+                    ${slotExpr} as slot,
                     COUNT(*) as requests,
                     SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successful
-                FROM request_logs
+                FROM request_logs rl
                 ${dateFilter}
-                GROUP BY DATE(created_at)
-                ORDER BY date DESC
+                GROUP BY ${groupBy}
+                ORDER BY slot DESC
                 LIMIT 30
             `).all();
+
+            const userBreakdown = db.prepare(`
+                SELECT
+                    ${slotExpr} as slot,
+                    u.username,
+                    COUNT(*) as requests
+                FROM request_logs rl
+                JOIN users u ON rl.user_id = u.id
+                ${dateFilter ? dateFilter.replace('WHERE', 'WHERE rl.') : ''}
+                GROUP BY ${groupBy}, u.id, u.username
+                ORDER BY slot DESC
+            `).all();
+
+            const dailyStatsWithUsers = dailyStats.map(ds => ({
+                ...ds,
+                users: userBreakdown
+                    .filter(ub => ub.slot === ds.slot)
+                    .map(ub => ({ username: ub.username, requests: ub.requests }))
+            }));
 
             const topUsers = db.prepare(`
                 SELECT
@@ -63,7 +96,7 @@ router.get('/', (req, res) => {
                 LIMIT 10
             `).all();
 
-            stats.dailyStats = dailyStats;
+            stats.dailyStats = dailyStatsWithUsers;
             stats.topUsers = topUsers;
         } else {
             stats = db.prepare(`
