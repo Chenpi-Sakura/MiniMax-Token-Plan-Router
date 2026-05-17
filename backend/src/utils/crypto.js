@@ -12,7 +12,7 @@ function getMasterKey() {
     if (!key) {
         throw new Error('MASTER_KEY environment variable is not set');
     }
-    return key;
+    return key.trim();
 }
 
 function deriveKey(password, salt) {
@@ -35,7 +35,7 @@ function encrypt(plaintext) {
 
 function decrypt(encryptedData) {
     const masterKey = getMasterKey();
-    const parts = encryptedData.split(':');
+    const parts = encryptedData.trim().split(':');
     if (parts.length !== 4) {
         throw new Error('Invalid encrypted data format');
     }
@@ -43,7 +43,7 @@ function decrypt(encryptedData) {
     const salt = Buffer.from(parts[0], 'hex');
     const iv = Buffer.from(parts[1], 'hex');
     const authTag = Buffer.from(parts[2], 'hex');
-    const encrypted = parts[3];
+    const encrypted = parts[3].trim();
 
     const key = deriveKey(masterKey, salt);
     const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);

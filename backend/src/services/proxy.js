@@ -278,6 +278,8 @@ async function proxyRequest(req, res) {
         return res.status(500).json({ error: 'Server configuration error' });
     }
 
+    const cleanApiKey = apiKey.trim();
+
     const model = req.body.model || 'abab5.5-chat';
     const messages = req.body.messages;
 
@@ -312,7 +314,7 @@ async function proxyRequest(req, res) {
             requestPayload,
             {
                 headers: {
-                    'Authorization': `Bearer ${apiKey}`,
+                    'Authorization': `Bearer ${cleanApiKey}`,
                     'Content-Type': 'application/json'
                 },
                 timeout: 120000,
@@ -402,26 +404,22 @@ async function proxyRequest(req, res) {
 }
 
 function extractMasterKey() {
-    const encryptedKey = process.env.ENCRYPTED_MINIMAX_KEY;
-    const plainKey = process.env.MINIMAX_API_KEY;
+    const keyFromEnv = process.env.ENCRYPTED_MINIMAX_KEY || process.env.MINIMAX_API_KEY || "";
+    const trimmedKey = keyFromEnv.trim();
 
-    if (encryptedKey) {
+    if (!trimmedKey) return null;
+
+    if (trimmedKey.startsWith('enc:')) {
         try {
-            if (encryptedKey.startsWith('enc:')) {
-                return decrypt(encryptedKey.substring(4));
-            }
-            return encryptedKey;
+            const decrypted = decrypt(trimmedKey.substring(4).trim());
+            return decrypted.trim();
         } catch (error) {
             console.error('Failed to decrypt master key:', error);
             return null;
         }
     }
 
-    if (plainKey) {
-        return plainKey;
-    }
-
-    return null;
+    return trimmedKey;
 }
 
 module.exports = {
